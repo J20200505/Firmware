@@ -50,9 +50,8 @@ Integrator::Integrator(uint32_t auto_reset_interval, bool coning_compensation) :
 	set_autoreset_interval(auto_reset_interval);
 }
 
-bool
-Integrator::put(const hrt_abstime &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
-		uint32_t &integral_dt)
+bool Integrator::put(const hrt_abstime &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
+		     uint32_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -94,8 +93,7 @@ Integrator::put(const hrt_abstime &timestamp, const matrix::Vector3f &val, matri
 	_last_integration_time = timestamp;
 
 	// Only do auto reset if auto reset interval is not 0.
-	if (_auto_reset_interval > 0 && (timestamp - _last_reset_time) >= _auto_reset_interval) {
-
+	if (timestamp >= _last_reset_time + _auto_reset_interval) {
 		// apply coning corrections if required
 		if (_coning_comp_on) {
 			integral = _alpha + _beta;
@@ -114,8 +112,7 @@ Integrator::put(const hrt_abstime &timestamp, const matrix::Vector3f &val, matri
 	}
 }
 
-void
-Integrator::_reset(uint32_t &integral_dt)
+void Integrator::_reset(uint32_t &integral_dt)
 {
 	_alpha.zero();
 	_last_alpha.zero();
@@ -123,5 +120,7 @@ Integrator::_reset(uint32_t &integral_dt)
 
 	integral_dt = (_last_integration_time - _last_reset_time);
 
-	_last_reset_time = _last_integration_time;
+	// shift last reset time forward, but don't let it get further behind than the interval
+	_last_reset_time = math::constrain(_last_reset_time + _auto_reset_interval,
+					   _last_integration_time - _auto_reset_interval, _last_integration_time);
 }

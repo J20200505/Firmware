@@ -48,7 +48,7 @@
 class Integrator
 {
 public:
-	Integrator(uint32_t auto_reset_interval = 2500 /* 400 Hz */, bool coning_compensation = false);
+	Integrator(uint32_t auto_reset_interval = 5000 /* 200 Hz */, bool coning_compensation = false);
 	~Integrator() = default;
 
 	/**
@@ -66,12 +66,17 @@ public:
 	/**
 	 * Set auto reset interval during runtime. This won't reset the integrator.
 	 *
-	 * @param auto_reset_interval	    	New reset time interval for the integrator (+- 10%).
+	 * @param auto_reset_interval	    	New reset time interval for the integrator.
 	 */
-	void set_autoreset_interval(uint32_t auto_reset_interval) { _auto_reset_interval = 0.90f * auto_reset_interval; }
+	void set_autoreset_interval(uint32_t auto_reset_interval)
+	{
+		if (_auto_reset_interval > 0) {
+			_auto_reset_interval = auto_reset_interval;
+		}
+	}
 
 private:
-	uint32_t _auto_reset_interval{0};			/**< the interval after which the content will be published
+	uint32_t _auto_reset_interval{5000};			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
 
 	uint64_t _last_integration_time{0};		/**< timestamp of the last integration step */
