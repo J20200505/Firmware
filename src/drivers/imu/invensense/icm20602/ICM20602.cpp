@@ -53,6 +53,7 @@ ICM20602::ICM20602(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Ro
 
 ICM20602::~ICM20602()
 {
+	perf_free(_run_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -60,6 +61,8 @@ ICM20602::~ICM20602()
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
 	perf_free(_drdy_interval_perf);
+	perf_free(_accel_pub_interval_perf);
+	perf_free(_gyro_pub_interval_perf);
 }
 
 int ICM20602::init()
@@ -94,6 +97,7 @@ void ICM20602::print_status()
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
+	perf_print_counter(_run_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
@@ -101,6 +105,8 @@ void ICM20602::print_status()
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
+	perf_print_counter(_accel_pub_interval_perf);
+	perf_print_counter(_gyro_pub_interval_perf);
 
 	_px4_accel.print_status();
 	_px4_gyro.print_status();
@@ -120,6 +126,8 @@ int ICM20602::probe()
 
 void ICM20602::RunImpl()
 {
+	perf_count(_run_interval_perf);
+
 	switch (_state) {
 	case STATE::RESET:
 		// PWR_MGMT_1: Device Reset
@@ -568,6 +576,7 @@ bool ICM20602::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTrans
 
 	accel.samples = accel_samples;
 
+	perf_count(_accel_pub_interval_perf);
 	_px4_accel.updateFIFO(accel);
 
 	return !bad_data;
@@ -594,6 +603,7 @@ void ICM20602::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransf
 		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
 	}
 
+	perf_count(_gyro_pub_interval_perf);
 	_px4_gyro.updateFIFO(gyro);
 }
 
